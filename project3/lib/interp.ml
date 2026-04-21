@@ -161,6 +161,15 @@ end = struct
 
 end
 
+(* Module for Values. 
+*)
+
+module Value = struct
+  type t = PrimValue.t * SecLab.t
+  [@@deriving show]
+
+end
+
 (* Module for input/output built-in functions.
  *)
 module Io = struct
