@@ -258,8 +258,254 @@ module Io = struct
 
 end
 
+(* Module for environments.
+ *)
+module Env = struct
+
+  type t = (Ast.Id.t * Value.t) list 
+  [@@deriving show]
+
+  (*  empty = ρ, where dom ρ = ∅.
+   *)
+  let empty : t = []
+
+  (* find the value in the env for evaluation and acts as a 
+  checker for duplicates
+  *)
+  let rec lookup (rho :t) (x : Ast.Id.t) : Value.t option =
+    match rho with
+    | [] -> None 
+    | (y,v) ::rest -> if x = y then Some v else lookup rest x
+
+  (* for let function, bind the value to env
+  *)
+  let bind (rho : t) (x : Ast.Id.t) (v : Value.t) : t =
+    (x, v) :: rho
+
+  (* declares a variable *)
+  let declare (rho : t)(x : Ast.Id.t) : t = 
+    match lookup rho x with 
+    | Some _ -> raise (MultipleDeclaration x)
+    | None -> bind rho x Value.V_Undefined
+  
+  (* for calling a function with multiple values
+  *)
+  let rec bind_multi (rho : t) (params : Ast.Id.t list) (args : Value.t list) : t=
+    match (params, args) with
+    | [],[] -> rho
+    | p::ps, a::as' -> bind_multi (bind rho p a) ps as'
+    | _ -> raise (TypeError("Mismatch in number parameters and args"))
+
+  let rec update (rho : t) (x : Ast.Id.t) (v : Value.t) : t = 
+    match rho with 
+    | [] ->  raise (UnboundVariable x)
+    | (y, ys) :: rest -> 
+      if x = y then 
+        (y,v) :: rest
+      else  
+        (y,ys) :: update rest x v
+
+end
+
+module EnvList = struct
+
+  type t = (Env.t) list 
+  [@@deriving show]
+
+  (*  empty = ρ, where dom ρ = ∅.
+   *)
+  let empty : t = []
+
+  
+  let rec lookup (envlist: t) (x: Ast.Id.t): Value.t = 
+    match envlist with
+    |[] -> raise(UnboundVariable x)
+    | hd::rest -> 
+        match Env.lookup hd x with 
+        | Some v -> v
+        | None -> lookup rest x 
+  
+  (* Declares a variable within the head of an EnvList *)
+  let declare (envlist: t) (x : Ast.Id.t): t = 
+    match envlist with 
+    |[] -> failwith "empty environment"
+    |hd::rest -> (Env.declare hd x) :: rest
+  
+  
+  let rec update (envlist: t) (x: Ast.Id.t) (v: Value.t): t = 
+    match envlist with 
+    |[] -> raise (UnboundVariable x)
+    |hd::rest -> 
+        match Env.lookup hd x with 
+        | Some _ -> (Env.update hd x v) :: rest
+        | None -> hd :: update rest x v
+end
+
+module Frame = struct 
+
+  type t = 
+  | EnvFrame of EnvList.t
+  | ReturnFrame of Value.t 
+
+end
+
+let unop (op : E.unop) (v : Value.t) : Value.t =
+  match (op, v) with
+  | (E.Neg, Value.V_Int n) -> Value.V_Int (-n)
+  | (E.Neg, _) -> raise (TypeError("Type cannot have negative value"))
+  | (E.Not, Value.V_Bool b) -> Value.V_Bool (not b)
+  | (E.Not, _)-> raise(TypeError("Type cannot be negated"))
+
+let binop (op : E.binop) (v : Value.t) (v' : Value.t) : Value.t =
+  match (op, v, v') with
+  | (E.Plus, Value.V_Int n, Value.V_Int n') -> Value.V_Int (n + n')
+  | (E.Minus, Value.V_Int n, Value.V_Int n') -> Value.V_Int (n - n')
+  | (E.Times, Value.V_Int n, Value.V_Int n') -> Value.V_Int (n * n')
+  | (E.Div, Value.V_Int n, Value.V_Int n') -> Value.V_Int (n / n')
+  | (E.Mod, Value.V_Int n, Value.V_Int n') -> Value.V_Int (n mod n')
+  | (E.And, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b && b')
+  | (E.Or, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b || b')
+  | (E.Eq, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b = b')
+  | (E.Eq, Value.V_Int n, Value.V_Int n') -> Value.V_Bool (n = n')
+  | (E.Ne, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b<>b')
+  | (E.Ne, Value.V_Int n, Value.V_Int n') -> Value.V_Bool (n<>n')
+  | (E.Lt, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b<b')
+  | (E.Gt, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b>b')
+  | (E.Le, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b<=b')
+  | (E.Ge, Value.V_Bool b, Value.V_Bool b') -> Value.V_Bool (b>=b')
+  (*Bools can actually be compared in the above way in C, unsure if meant to be handled this way in Cminus, defaulted to C implementation*)
+  | (E.Lt, Value.V_Int n, Value.V_Int n') -> Value.V_Bool (n < n')
+  | (E.Le, Value.V_Int n, Value.V_Int n') -> Value.V_Bool (n <= n')
+  | (E.Gt, Value.V_Int n, Value.V_Int n') -> Value.V_Bool (n > n')
+  | (E.Ge, Value.V_Int n, Value.V_Int n') -> Value.V_Bool (n >= n')
+  | (E.Eq, Value.V_Str s, Value.V_Str s') -> Value.V_Bool (String.equal s s')
+  | (E.Ne, Value.V_Str s, Value.V_Str s') -> Value.V_Bool (not (String.equal s s'))
+  | (E.Le, Value.V_Str s, Value.V_Str s') -> Value.V_Bool ((Id.compare s s')<=0)
+  | (E.Lt, Value.V_Str s, Value.V_Str s') -> Value.V_Bool ((Id.compare s s')<0)
+  | (E.Ge, Value.V_Str s, Value.V_Str s') -> Value.V_Bool ((Id.compare s s')>=0)
+  | (E.Gt, Value.V_Str s, Value.V_Str s') -> Value.V_Bool ((Id.compare s s')>0)
+  | (_, Value.V_Str _, _)-> raise(TypeError("No binary operations on strings aside from equality/inequality checking"))
+  | (_, _, Value.V_Str _)-> raise(TypeError("No binary operations on strings aside from equality/inequality checking"))
+  | (_, Value.V_Bool _ , _) -> raise (TypeError("Bool type cannot undergo this binary operation"))
+  | (_, _, Value.V_Bool _) -> raise (TypeError("Bool type cannot undergo this binary operation"))
+  | (_, Value.V_Int _ , _) -> raise (TypeError("Int type cannot be used in this binary operation"))
+  | (_, _, Value.V_Int _) -> raise (TypeError("Int type cannot be used in this binary operation"))
+  | (_, Value.V_None, _) -> raise(TypeError("No binary operations on None type"))
+  | (_, Value.V_Undefined, _) -> raise(TypeError("No binary operations on Undefined"))
+
 (* exec p:  Execute the program `p`.
  *)
-let exec (_ : Ast.Prog.t) : unit =
-  failwith "Unimplemented:  exec"
+let exec (p : Ast.Prog.t) : unit =
+  let (Pgm funcs) = p in
+
+  let rec eval (rho : EnvList.t) (e : Ast.Expr.t) : Value.t =
+    match e with
+    | Var x -> EnvList.lookup rho x
+    | Num n -> Value.V_Int n
+    | Bool b -> Value.V_Bool b
+    | Str s -> Value.V_Str s
+    | Unop (op, e1) ->
+        let v = eval rho e1 in
+        unop op v
+    | Binop (op, e1, e2) ->
+        let v1 = eval rho e1 in
+        let v2 = eval rho e2 in
+        binop op v1 v2
+    | Call (funcName, args) ->
+        match funcName with
+        | "fprintf" ->
+          (match args with 
+          | _ :: fmt :: xs -> 
+            let pFormat = match eval rho fmt with
+              | Value.V_Str str -> str
+              | _ -> raise (TypeError "Format must be a string to print")
+            in let vs = List.map (eval rho) xs in
+             Io.do_fprintf pFormat vs;
+             Value.V_None
+
+            | _ -> raise (TypeError "fprintf expects stdout and a format string"))
+
+        | "fscanf" ->
+            raise (TypeError "fscanf is a statement, not an expression")
+        | _ -> (* main and user defined functions*)
+            let func =
+              match List.find_opt
+                      (fun (name, _, _) -> name = funcName)
+                      funcs with
+              | Some f -> f
+              | None -> raise(UndefinedFunction(funcName))
+            in
+            let (_, params, body_stms) = func in
+            let arg_vals = List.map (eval rho) args in
+            let func_env = Env.bind_multi Env.empty params arg_vals in
+            let func_rho : EnvList.t = [func_env] in
+            match exec_seq body_stms func_rho with
+            | Frame.EnvFrame _ ->  raise(NoReturn(funcName))
+            | Frame.ReturnFrame v -> v
+
+    (* and allows for mutually recursive functions. Statements will 
+    either result in a changed EnvList or returns a Value.t; 
+    hence, we need Frame here *)
+    and exec_stm (stm : Ast.Stm.t) (rho : EnvList.t) : Frame.t = 
+      match stm with 
+      | VarDec declarations -> 
+        let rho' = List.fold_left (fun env (x, _) -> EnvList.declare env x) rho declarations
+          in let rho'' = List.fold_left (fun env (x, e_opt) -> 
+            match e_opt with
+            | None -> env
+            | Some e -> let v = eval rho e in EnvList.update env x v) rho' declarations in Frame.EnvFrame rho''
+    | Fscanf (_, fmt, var_id) ->
+        let v = Io.do_fscanf fmt in
+        let rho' = EnvList.update rho var_id v in
+        Frame.EnvFrame rho'
+    | Assign (x, e) ->
+        let v = eval rho e in
+        let rho' = EnvList.update rho x v in
+        Frame.EnvFrame rho'
+    | Expr e ->
+        let _ = eval rho e in
+        Frame.EnvFrame rho
+    | Block stms ->
+        let rho' = Env.empty :: rho in
+        (match exec_seq stms rho' with
+         | Frame.ReturnFrame v -> Frame.ReturnFrame v
+         | Frame.EnvFrame (_ :: rest) -> Frame.EnvFrame rest
+         | Frame.EnvFrame [] -> Frame.EnvFrame rho)
+    | IfElse (e, s, s') ->
+        (match eval rho e with
+         | Value.V_Bool true -> exec_stm s rho
+         | Value.V_Bool false -> exec_stm s' rho
+         | _ -> raise (TypeError "If condition must be boolean"))
+    | While (cond, body) ->
+        exec_while rho cond body
+    | Return opt ->
+        let v = match opt with
+          | None -> Value.V_None
+          | Some e -> eval rho e
+        in
+        Frame.ReturnFrame v
+
+  and exec_seq (stms : Ast.Stm.t list) (rho : EnvList.t) : Frame.t =
+    match stms with
+    | [] -> Frame.EnvFrame rho
+    | hd :: rest ->
+        match exec_stm hd rho with
+         | Frame.EnvFrame rho' -> exec_seq rest rho'
+         | Frame.ReturnFrame v -> Frame.ReturnFrame v
+
+  and exec_while (rho : EnvList.t) (cond : Ast.Expr.t) (body : Ast.Stm.t) : Frame.t =
+    match eval rho cond with
+    | Value.V_Bool false -> Frame.EnvFrame rho
+    | Value.V_Bool true ->
+        (match exec_stm body rho with
+         | Frame.ReturnFrame v -> Frame.ReturnFrame v
+         | Frame.EnvFrame rho' -> exec_while rho' cond body)
+    | _ -> raise (TypeError "While condition must be boolean")
+
+  in
+
+  let _ = eval [[]] (Call ("main", [])) in
+  ()
+
+
 
