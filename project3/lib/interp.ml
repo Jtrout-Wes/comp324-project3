@@ -3,6 +3,11 @@
  * N. Danner
  *)
 
+module Ast = Ast
+module Id = Ast.Id
+module E = Ast.Expr
+module S = Ast.Stm
+
 (* Raised when a function body terminates without executing `return`.
  *)
 exception NoReturn of Ast.Id.t
