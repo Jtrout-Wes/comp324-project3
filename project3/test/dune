@@ -1,0 +1,5 @@
+(test
+ (name tests)
+ (libraries str alcotest yojson dynsec)
+ (deps (source_tree suites)))
+

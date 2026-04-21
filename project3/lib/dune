@@ -1,0 +1,10 @@
+(library
+ (name dynsec)
+ (preprocess (pps ppx_deriving.show)))
+
+(include_subdirs qualified)
+
+(ocamllex lexer)
+
+(menhir (modules parser))
+
