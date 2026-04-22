@@ -456,9 +456,9 @@ let exec (p : Ast.Prog.t) : unit =
   let rec eval (rho : EnvList.t) (e : Ast.Expr.t) : Value.t =
     match e with
     | Var x -> EnvList.lookup rho x
-    | Num n -> Value.V_Int n
-    | Bool b -> Value.V_Bool b
-    | Str s -> Value.V_Str s
+    | Num n -> Value.V_Int (n, SecLab.bottom)
+    | Bool b -> Value.V_Bool (b, SecLab.bottom)
+    | Str s -> Value.V_Str (s, SecLab.bottom)
     | Unop (op, e1) ->
         let v = eval rho e1 in
         unop op v
