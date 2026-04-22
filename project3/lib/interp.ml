@@ -336,10 +336,13 @@ module Env = struct
     (x, v) :: rho
 
   (* declares a variable *)
-  let declare (rho : t)(x : Ast.Id.t) : t = 
+  let declare (rho : t)(x : Ast.Id.t)(sec : SecLab.t): t = 
     match lookup rho x with 
     | Some _ -> raise (MultipleDeclaration x)
-    | None -> bind rho x Value.V_Undefined
+    | None -> bind rho x (Value.V_Undefined sec)                (* Not entirely sure about the security label when declaring a variable. 
+                                                                Based on the operational semantics, it needs a security label based 
+                                                                off of the security context. If so, do I need to pass in the security context
+                                                                from my program execution? *)
   
   (* for calling a function with multiple values
   *)
@@ -379,10 +382,10 @@ module EnvList = struct
         | None -> lookup rest x 
   
   (* Declares a variable within the head of an EnvList *)
-  let declare (envlist: t) (x : Ast.Id.t): t = 
+  let declare (envlist: t) (x : Ast.Id.t) (sec : SecLab.t): t = 
     match envlist with 
     |[] -> failwith "empty environment"
-    |hd::rest -> (Env.declare hd x) :: rest
+    |hd::rest -> (Env.declare hd x sec) :: rest
   
   
   let rec update (envlist: t) (x: Ast.Id.t) (v: Value.t): t = 
