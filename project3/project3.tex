@@ -1,0 +1,297 @@
+\documentclass[11pt]{article}
+\usepackage[left=0.3in,right=0.6in,top=1in,bottom=1in]{geometry}
+
+%others
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lemma}[thm]{Lemma}
+\newtheorem{sublemma}[thm]{Sub-Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{corollary}[thm]{Corollary}
+
+%% Theorem style - definition
+\newtheorem{defn}[thm]{Definition}
+\newtheorem{example}[thm]{Example}
+\newtheorem{remark}[thm]{Remark}
+\newtheorem{conj}[thm]{Conjecture}
+\newtheorem{examples}[thm]{Examples}
+\newtheorem{obs}[thm]{Observation}
+\newtheorem{claim}[thm]{Claim}
+\newtheorem{assumption}[thm]{Assumption}
+\newtheorem{notation}[thm]{Notation}
+\newtheorem{question}[thm]{Question}
+\newtheorem{construction}[thm]{Construction}
+\newtheorem{outline}[thm]{Outline}
+\newtheorem{assumptions}[thm]{Standing Assumptions}
+
+\usepackage{amsmath, amssymb, amsfonts}
+%\usepackage{mathabx}
+\usepackage{graphicx, overpic}
+%\usepackage{comment}
+\usepackage{color}
+\usepackage{enumerate}
+\usepackage{multicol}
+%\usepackage{xypic}
+\usepackage{mathrsfs}
+\usepackage{mathabx}
+\usepackage{proof}
+\usepackage[T1]{fontenc}
+
+
+% The [listings] package is very helpful for typesetting code.  It is aware of
+% many languages---i.e., it knows what the keywords are and things like that,
+% and can adjust how they are displayed.  It has a lot of features for
+% controlling the display, but we'll just use a few here.  [listtings] lets
+% you define "styles", which switch between different settings for different
+% languages.
+\def\utt#1{\underline{\smash{\texttt{#1}}}}
+\usepackage{listings}
+  % This is a simple style for displaying OCaml code.
+  \lstdefinestyle{ocamlcode}{
+    language=[Objective]Caml,
+	  basicstyle=\normalfont,
+	  keywordstyle=\utt,
+	  morekeywords={int, bool, real, char, string, true, false, not,
+	  	div, mod, list},
+	  identifierstyle=\texttt,
+	  commentstyle=\texttt,
+	  stringstyle=\texttt,
+	  tabsize=2,
+	  showstringspaces=false,
+	  mathescape=true,
+	  alsoletter={0,1,2,3,4,5,6,7,8,9,-,<,>,'},
+  }
+  % This is a simple style for displaying C code.
+  \lstdefinestyle{ccode}{
+    language=C,
+    keywordstyle=\normalfont\textttunder,
+    keywordstyle=[2]\normalfont\textt,
+    morekeywords={int,bool},
+    identifierstyle=\normalfont\texttt,
+    commentstyle=\normalfont\texttt,
+    stringstyle=\normalfont\texttt,
+    tabsize=4,
+    showstringspaces=false,
+    mathescape=true,
+    alsoletter={0,1,2,3,4,5,6,7,8,9,0,<,>,=,+,-,*,/,|,!,),(,&,\%,[,]},
+  }
+  % This macro enables a short form for typesetting code.
+  \lstMakeShortInline|
+
+%%% Used for typesetting inference rules and tree-style derivations; provides
+%%% the \inferrule macro.
+\usepackage{mathpartir}
+
+%%% Used for rotated figures
+\usepackage{rotating}
+
+%%% Used for typesetting derivations.
+\usepackage{fitch}
+    \newcommand{\der}[3][{}]{\hypo{#1}{#2} #3 }
+    \newcommand{\subder}[3][{}]{\open\hypo{#1}{#2} #3 \close}
+    \newcommand{\tbc}[1][{}]{\open\have{#1}{\cdots}\close}
+    \newcommand{\axiom}[2][{}]{\subder[#1]{#2}{}}
+
+%%% Our languages
+\newcommand{\Ocm}{\mbox{\textrm{OCaml}-}}
+\newcommand{\Cm}{\mbox{\textrm{C}-}}
+
+% Writing inference rules often involves mixing mathematics with listings.
+% For example, a generic expression should be e, typeset as a mathematical
+% symbol.  So a generic Ocaml- let expression should be typeset as
+% \lstinline!let $x$ = $e'$ in $e$!.  Unfortunately, the spacing can get very
+% messed up if you do this in arguments to macros, and you need to put some
+% spaces back in.  So I often write macros like these that use \, to insert
+% space and use these macros when needed.
+
+\newcommand{\Ocmlet}[3]{\lstinline[style=ocamlcode]!let $\,#1\,$ = $\,#2\,$ in $\,#3$!}
+
+%%% Environments.
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\env}[1]{\set{#1}}
+\newcommand{\bind}[2]{{#1}\mapsto{#2}}
+\newcommand{\extend}[3]{#1\env{\bind{#2}{#3}}}
+\newcommand{\emptyenv}{\_}
+\newcommand{\wild}{\_}
+\newcommand{\rhos}{\rho s}
+
+%%% Judgments
+
+% \expjudge[p] ρs e v = ρs ├_p e ↓ v
+\newcommand{\expjudge}[4][{}]{{#2}\vdash_{#1}{#3}\Downarrow{#4}}
+% \stmjudge[p] s ρs ρs' = s ├_p ρs → ρs'
+\newcommand{\stmjudge}[4][{}]{{#2}\vdash_{#1}{#3}\Rightarrow{#4}}
+
+
+%%% Title, author, date, 
+\title{CS324 - Project 2}
+\author{Jeramiah Trout, Ruishi Wang, Mark Zheng}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+    
+\noindent Task 2 - Operational Semantics
+
+\textbf{Example of a program that is not safe}:
+\begin{center}
+    \begin{verbatim}
+      bool b;
+      int x;
+      int y;
+      fscanf(stdin_hi, "%b", &b);
+      if (b) {
+          fscanf(stdin_lo, "%d", &x);
+      }
+      fscanf(stdin_lo, "%d", &y);
+      fprintf(stdout_lo, "%d", y);
+    \end{verbatim}
+\end{center}
+
+\noindent By Definition 2 in handout, a program is safe when public inputs are the same, public outputs are also same even 
+secrete inputs can be different. 
+
+To show our program above is not saft, then, we need to run the program twice, with two different high security input. We can 
+do this in our program by changing boolean value b from true to false, then compare the output result. 
+
+Looking at the derivation on the next page, we have the following result
+
+\[
+  chs_0 = \langle [1,2], [\,], [true], [\,]\rangle
+  \qquad
+  chs_1 = \langle [1,2], [\,], [false], [\,]\rangle
+  \]
+  \[
+  chs_0' = \langle [\,], [2^L], [\,], [\,]\rangle
+  \qquad
+  chs_1' = \langle [2], [1^L], [\,], [\,]\rangle
+  \]
+  \[
+  chs_0 \sim chs_1
+  \qquad\text{but}\qquad
+  chs_0' \not\sim chs_1'
+  \]
+
+\begin{figure}
+  \centering
+  \resizebox{\linewidth}{!}{$
+  \begin{nd}
+  \der{
+    ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
+    \qquad
+    ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
+  }
+    % ---------- First run: b = true ----------
+    \subder{
+      ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
+    }{
+      \axiom{
+        \texttt{bool b; int x; int y;}
+        \vdash_p \_
+        \Rightarrow
+        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\}
+      }
+  
+      \axiom{
+        \texttt{fscanf}(stdin_{hi},\dots,\&b)
+        \vdash_p
+        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0
+        \Rightarrow
+        \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0^1
+      }
+  
+      \subder{
+        \texttt{if}(b)\{
+        \texttt{fscanf}(stdin_{lo},\dots,\&x);
+        \}
+        \vdash_p
+        \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0^1
+        \Rightarrow
+        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto ?^L\},\, chs_0^2
+      }{
+        \axiom{
+          \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\}
+          \vdash_p b \Downarrow true^H
+        }
+  
+        \axiom{
+          \texttt{fscanf}(stdin_{lo},\dots,\&x)
+          \vdash_{p,H}
+          \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0^1
+          \Rightarrow
+          \{b\mapsto true^H,\;x\mapsto 1^{L\sqcup H},\;y\mapsto ?^L\},\, chs_0^2
+        }
+      }
+  
+      \axiom{
+        \texttt{fscanf}(stdin_{lo},\dots,\&y)
+        \vdash_p
+        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto ?^L\},\, chs_0^2
+        \Rightarrow
+        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto 2^L\},\, chs_0^3
+      }
+  
+      \axiom{
+        \texttt{fprintf}(stdout_{lo},\dots,y)
+        \vdash_p
+        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto 2^L\},\, chs_0^3
+        \Rightarrow
+        None,\, chs_0'
+      }
+    }
+  
+    % ---------- Second run: b = false ----------
+    \subder{
+      ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
+    }{
+      \axiom{
+        \texttt{bool b; int x; int y;}
+        \vdash_p \_
+        \Rightarrow
+        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\}
+      }
+  
+      \axiom{
+        \texttt{fscanf}(stdin_{hi},\dots,\&b)
+        \vdash_p
+        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1
+        \Rightarrow
+        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
+      }
+  
+      \subder{
+        \texttt{if}(b)\{
+        \texttt{fscanf}(stdin_{lo},\dots,\&x);
+        \}
+        \vdash_p
+        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
+        \Rightarrow
+        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
+      }{
+        \axiom{
+          \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\}
+          \vdash_p b \Downarrow false^H
+        }
+      }
+  
+      \axiom{
+        \texttt{fscanf}(stdin_{lo},\dots,\&y)
+        \vdash_p
+        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
+        \Rightarrow
+        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto 1^L\},\, chs_1^2
+      }
+  
+      \axiom{
+        \texttt{fprintf}(stdout_{lo},\dots,y)
+        \vdash_p
+        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto 1^L\},\, chs_1^2
+        \Rightarrow
+        None,\, chs_1'
+      }
+    }
+  \end{nd}
+  $}
+  \end{figure}
+\end{document}
