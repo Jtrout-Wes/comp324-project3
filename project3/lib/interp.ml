@@ -450,22 +450,33 @@ let binop (op : E.binop) (v : Value.t) (v' : Value.t) : Value.t =
 
 (* exec p:  Execute the program `p`.
  *)
-let exec (p : Ast.Prog.t) : unit =
+let exec (p : Ast.Prog.t) : unit = 
   let (Pgm funcs) = p in
 
-  let rec eval (rho : EnvList.t) (e : Ast.Expr.t) : Value.t =
+  let rec eval (rho : EnvList.t) (e : Ast.Expr.t) (secCon : SecLab.t): Value.t =
     match e with
-    | Var x -> EnvList.lookup rho x
-    | Num n -> Value.V_Int (n, SecLab.bottom)
-    | Bool b -> Value.V_Bool (b, SecLab.bottom)
-    | Str s -> Value.V_Str (s, SecLab.bottom)
+    | Var x -> (
+        let v = EnvList.lookup rho x in 
+        let v_lab = Value.get_sec v in 
+        match v with
+        | Value.V_Undefined _ -> Value.V_Undefined (SecLab.join v_lab secCon)
+        | Value.V_None _ -> Value.V_None (SecLab.join v_lab secCon)
+        | Value.V_Int (n, _) -> Value.V_Int (n, SecLab.join v_lab secCon)
+        | Value.V_Bool (b, _) -> Value.V_Bool (b, SecLab.join v_lab secCon)
+        | Value.V_Str (s, _) -> Value.V_Str (s, SecLab.join v_lab secCon)
+        )
+
+    | Num n -> Value.V_Int (n, secCon)
+    | Bool b -> Value.V_Bool (b, secCon)
+    | Str s -> Value.V_Str (s, secCon)
     | Unop (op, e1) ->
-        let v = eval rho e1 in
+        let v = eval rho e1 secCon in
         unop op v
     | Binop (op, e1, e2) ->
-        let v1 = eval rho e1 in
-        let v2 = eval rho e2 in
+        let v1 = eval rho e1 secCon in
+        let v2 = eval rho e2 secCon in
         binop op v1 v2
+        
     | Call (funcName, args) ->
         match funcName with
         | "fprintf" ->
@@ -540,7 +551,7 @@ let exec (p : Ast.Prog.t) : unit =
         in
         Frame.ReturnFrame v
 
-  and exec_seq (stms : Ast.Stm.t list) (rho : EnvList.t) : Frame.t =
+  and exec_seq (stms : Ast.Stm.t list) (rho : EnvList.t): Frame.t =
     match stms with
     | [] -> Frame.EnvFrame rho
     | hd :: rest ->
