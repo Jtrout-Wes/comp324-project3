@@ -450,6 +450,7 @@ let binop (op : E.binop) (v : Value.t) (v' : Value.t) : Value.t =
 
 (* exec p:  Execute the program `p`.
  *)
+
 let exec (p : Ast.Prog.t) : unit = 
   let (Pgm funcs) = p in
 
@@ -476,7 +477,7 @@ let exec (p : Ast.Prog.t) : unit =
         let v1 = eval rho e1 secCon in
         let v2 = eval rho e2 secCon in
         binop op v1 v2
-        
+
     | Call (funcName, args) ->
         match funcName with
         | "fprintf" ->
@@ -493,6 +494,7 @@ let exec (p : Ast.Prog.t) : unit =
 
         | "fscanf" ->
             raise (TypeError "fscanf is a statement, not an expression")
+
         | _ -> (* main and user defined functions*)
             let func =
               match List.find_opt
@@ -512,38 +514,51 @@ let exec (p : Ast.Prog.t) : unit =
     (* and allows for mutually recursive functions. Statements will 
     either result in a changed EnvList or returns a Value.t; 
     hence, we need Frame here *)
-    and exec_stm (stm : Ast.Stm.t) (rho : EnvList.t) : Frame.t = 
+
+    (* VarDec, Expr, Block, While, Assign should be fine. Need to focus on IfElse, Return *)
+    and exec_stm (stm : Ast.Stm.t) (rho : EnvList.t) (secCon : SecLab.t) : Frame.t = 
       match stm with 
       | VarDec declarations -> 
-        let rho' = List.fold_left (fun env (x, _) -> EnvList.declare env x) rho declarations
+        let rho' = List.fold_left (fun env (x, _) -> EnvList.declare env x secCon) rho declarations
           in let rho'' = List.fold_left (fun env (x, e_opt) -> 
             match e_opt with
             | None -> env
-            | Some e -> let v = eval rho e in EnvList.update env x v) rho' declarations in Frame.EnvFrame rho''
+            | Some e -> let v = eval rho e secCon in EnvList.update env x v) rho' declarations in Frame.EnvFrame rho''
+
     | Fscanf (_, fmt, var_id) ->
         let v = Io.do_fscanf fmt in
         let rho' = EnvList.update rho var_id v in
         Frame.EnvFrame rho'
+
     | Assign (x, e) ->
-        let v = eval rho e in
+        let curr_x = EnvList.lookup rho x in 
+        let curr_sec = Value.get_sec curr_x in 
+        (
+        match SecLab.leq secCon curr_sec with 
+        | false -> raise NSU_Error
+        | true -> 
+        let v = eval rho e secCon in
         let rho' = EnvList.update rho x v in
         Frame.EnvFrame rho'
+        )
+    
     | Expr e ->
-        let _ = eval rho e in
+        let _ = eval rho e secCon in
         Frame.EnvFrame rho
     | Block stms ->
         let rho' = Env.empty :: rho in
-        (match exec_seq stms rho' with
+        (match exec_seq stms rho' secCon with
          | Frame.ReturnFrame v -> Frame.ReturnFrame v
          | Frame.EnvFrame (_ :: rest) -> Frame.EnvFrame rest
          | Frame.EnvFrame [] -> Frame.EnvFrame rho)
     | IfElse (e, s, s') ->
-        (match eval rho e with
-         | Value.V_Bool true -> exec_stm s rho
-         | Value.V_Bool false -> exec_stm s' rho
+        (match eval rho e secCon with
+         | Value.V_Bool (true, _) -> exec_stm s rho secCon
+         | Value.V_Bool (false, _) -> exec_stm s' rho secCon
          | _ -> raise (TypeError "If condition must be boolean"))
     | While (cond, body) ->
-        exec_while rho cond body
+        exec_while rho cond body secCon
+
     | Return opt ->
         let v = match opt with
           | None -> Value.V_None
@@ -551,21 +566,21 @@ let exec (p : Ast.Prog.t) : unit =
         in
         Frame.ReturnFrame v
 
-  and exec_seq (stms : Ast.Stm.t list) (rho : EnvList.t): Frame.t =
+  and exec_seq (stms : Ast.Stm.t list) (rho : EnvList.t)(secCon : SecLab.t): Frame.t =
     match stms with
     | [] -> Frame.EnvFrame rho
     | hd :: rest ->
-        match exec_stm hd rho with
-         | Frame.EnvFrame rho' -> exec_seq rest rho'
+        match exec_stm hd rho secCon with
+         | Frame.EnvFrame rho' -> exec_seq rest rho' secCon
          | Frame.ReturnFrame v -> Frame.ReturnFrame v
 
-  and exec_while (rho : EnvList.t) (cond : Ast.Expr.t) (body : Ast.Stm.t) : Frame.t =
-    match eval rho cond with
-    | Value.V_Bool false -> Frame.EnvFrame rho
-    | Value.V_Bool true ->
-        (match exec_stm body rho with
+  and exec_while (rho : EnvList.t) (cond : Ast.Expr.t) (body : Ast.Stm.t) (secCon : SecLab.t) : Frame.t =
+    match eval rho cond secCon with
+    | Value.V_Bool (false, _) -> Frame.EnvFrame rho
+    | Value.V_Bool (true, secCon) ->
+        (match exec_stm body rho secCon with
          | Frame.ReturnFrame v -> Frame.ReturnFrame v
-         | Frame.EnvFrame rho' -> exec_while rho' cond body)
+         | Frame.EnvFrame rho' -> exec_while rho' cond body secCon)
     | _ -> raise (TypeError "While condition must be boolean")
 
   in
