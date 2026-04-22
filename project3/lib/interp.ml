@@ -136,19 +136,30 @@ end = struct
   (* eq x y = true,  if x and y are the same security label
    *          false, otherwise.
    *)
-  let eq (_ : t) (_ : t) : bool =
-    failwith "Unimplemented:  SecLab.eq"
+  let eq (x : t) (y : t) : bool =
+    match (x, y) with
+    | (Low, Low) -> true
+    | (High, High) -> true
+    | _ -> false
 
   (* leq x y = true,  eq x y or x = Low and y = High
    *           false, o/w.
+   * true will always be returned if x <= y. 
    *)
-  let leq (_ : t) (_ : t) : bool =
-    failwith "Unimplemented:  SecLab.leq"
+  let leq (x : t) (y : t) : bool =
+    match eq x y with  
+    | true -> true
+    | false -> 
+      match (x, y) with
+      | (Low, High) -> true
+      | _ -> false
 
   (* join x y = the maximum of x and y with respect to `leq`.
    *)
-  let join (_ : t) (_ : t) : t =
-    failwith "Unimplemented:  SecLab.join"
+  let join (x : t) (y : t) : t =
+    match leq x y with 
+    | true -> y 
+    | false -> x
 
   (* [of_channel ch] = the security label associated to the channel [ch].
    *)
