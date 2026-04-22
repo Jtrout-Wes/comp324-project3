@@ -515,7 +515,7 @@ let exec (p : Ast.Prog.t) : unit =
     either result in a changed EnvList or returns a Value.t; 
     hence, we need Frame here *)
 
-    (* VarDec, Expr, Block, While, Assign should be fine. Need to focus on IfElse, Return *)
+    (* VarDec, Expr, Block, While, Assign, IfElse, Return should be fine. Still need to do Fscanf. *)
     and exec_stm (stm : Ast.Stm.t) (rho : EnvList.t) (secCon : SecLab.t) : Frame.t = 
       match stm with 
       | VarDec declarations -> 
@@ -534,7 +534,8 @@ let exec (p : Ast.Prog.t) : unit =
         let curr_x = EnvList.lookup rho x in 
         let curr_sec = Value.get_sec curr_x in 
         (
-        match SecLab.leq secCon curr_sec with 
+        match SecLab.leq secCon curr_sec with (* If the security label is greater than current security label of our current variable
+                                                  we raise the NSU error. O/w , update. *)
         | false -> raise NSU_Error
         | true -> 
         let v = eval rho e secCon in
@@ -553,16 +554,20 @@ let exec (p : Ast.Prog.t) : unit =
          | Frame.EnvFrame [] -> Frame.EnvFrame rho)
     | IfElse (e, s, s') ->
         (match eval rho e secCon with
-         | Value.V_Bool (true, _) -> exec_stm s rho secCon
-         | Value.V_Bool (false, _) -> exec_stm s' rho secCon
+         | Value.V_Bool (true, sec) -> exec_stm s rho (SecLab.join secCon sec)
+         | Value.V_Bool (false, sec) -> exec_stm s' rho (SecLab.join secCon sec) 
          | _ -> raise (TypeError "If condition must be boolean"))
     | While (cond, body) ->
         exec_while rho cond body secCon
 
-    | Return opt ->
+    | Return opt ->                               (* According to the semantics, returning is only permissible if the security
+                                                    context is Low. O/w, we raise the NSU_error. *)
+      match SecLab.leq secCon SecLab.bottom with
+      | false -> raise NSU_Error
+      | true -> 
         let v = match opt with
-          | None -> Value.V_None
-          | Some e -> eval rho e
+          | None -> Value.V_None SecLab.bottom
+          | Some e -> eval rho e secCon
         in
         Frame.ReturnFrame v
 
@@ -576,16 +581,18 @@ let exec (p : Ast.Prog.t) : unit =
 
   and exec_while (rho : EnvList.t) (cond : Ast.Expr.t) (body : Ast.Stm.t) (secCon : SecLab.t) : Frame.t =
     match eval rho cond secCon with
-    | Value.V_Bool (false, _) -> Frame.EnvFrame rho
-    | Value.V_Bool (true, secCon) ->
-        (match exec_stm body rho secCon with
+    | Value.V_Bool (false, _) ->  
+        Frame.EnvFrame rho
+    | Value.V_Bool (true, sec) ->
+        let secCon' = SecLab.join secCon sec in 
+        (match exec_stm body rho secCon' with
          | Frame.ReturnFrame v -> Frame.ReturnFrame v
-         | Frame.EnvFrame rho' -> exec_while rho' cond body secCon)
+         | Frame.EnvFrame rho' -> exec_while rho' cond body secCon')
     | _ -> raise (TypeError "While condition must be boolean")
 
   in
 
-  let _ = eval [[]] (Call ("main", [])) in
+  let _ = eval [[]] (Call ("main", [])) SecLab.bottom in
   ()
 
 
