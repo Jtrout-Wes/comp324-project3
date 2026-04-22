@@ -138,14 +138,18 @@
 \begin{center}
     \begin{verbatim}
       bool b;
-      int x;
       int y;
+      int z;
+      
       fscanf(stdin_hi, "%b", &b);
+      fscanf(stdin_hi, "%d", &y);
+      
       if (b) {
-          fscanf(stdin_lo, "%d", &x);
+          fscanf(stdin_lo, "%d", &y);   
       }
-      fscanf(stdin_lo, "%d", &y);
-      fprintf(stdout_lo, "%d", y);
+      
+      fscanf(stdin_lo, "%d", &z);
+      fprintf(stdout_lo, "%d", z);
     \end{verbatim}
 \end{center}
 
@@ -155,143 +159,105 @@ secrete inputs can be different.
 To show our program above is not saft, then, we need to run the program twice, with two different high security input. We can 
 do this in our program by changing boolean value b from true to false, then compare the output result. 
 
-Looking at the derivation on the next page, we have the following result
+Looking at the derivation on the next page, we have the following result using same low input in $chs_0$ and $chs_1$
 
 \[
-  chs_0 = \langle [1,2], [\,], [true], [\,]\rangle
-  \qquad
-  chs_1 = \langle [1,2], [\,], [false], [\,]\rangle
+  \begin{array}{rcl}
+  chs_0 &=& \langle [1,2], [\,], [true,9], [\,] \rangle \\[2mm]
+  chs_1 &=& \langle [1,2], [\,], [false,9], [\,] \rangle \\[2mm]
+  chs_0' &=& \langle [\,], [2^L], [\,], [\,] \rangle \\[2mm]
+  chs_1' &=& \langle [2], [1^L], [\,], [\,] \rangle
+  \end{array}
   \]
   \[
-  chs_0' = \langle [\,], [2^L], [\,], [\,]\rangle
-  \qquad
-  chs_1' = \langle [2], [1^L], [\,], [\,]\rangle
-  \]
-  \[
-  chs_0 \sim chs_1
-  \qquad\text{but}\qquad
+  chs_0 \sim chs_1 \text{but }
   chs_0' \not\sim chs_1'
   \]
 
-\begin{figure}
-  \centering
-  \resizebox{\linewidth}{!}{$
-  \begin{nd}
-  \der{
-    ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
-    \qquad
-    ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
-  }
-    % ---------- First run: b = true ----------
-    \subder{
+  \begin{figure}
+    \[
+    \begin{nd}
+    \der{
       ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
-    }{
-      \axiom{
-        \texttt{bool b; int x; int y;}
-        \vdash_p \_
-        \Rightarrow
-        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\}
-      }
-  
-      \axiom{
-        \texttt{fscanf}(stdin_{hi},\dots,\&b)
-        \vdash_p
-        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0
-        \Rightarrow
-        \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0^1
-      }
-  
-      \subder{
-        \texttt{if}(b)\{
-        \texttt{fscanf}(stdin_{lo},\dots,\&x);
-        \}
-        \vdash_p
-        \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0^1
-        \Rightarrow
-        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto ?^L\},\, chs_0^2
-      }{
-        \axiom{
-          \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\}
-          \vdash_p b \Downarrow true^H
-        }
-  
-        \axiom{
-          \texttt{fscanf}(stdin_{lo},\dots,\&x)
-          \vdash_{p,H}
-          \{b\mapsto true^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_0^1
-          \Rightarrow
-          \{b\mapsto true^H,\;x\mapsto 1^{L\sqcup H},\;y\mapsto ?^L\},\, chs_0^2
-        }
-      }
-  
-      \axiom{
-        \texttt{fscanf}(stdin_{lo},\dots,\&y)
-        \vdash_p
-        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto ?^L\},\, chs_0^2
-        \Rightarrow
-        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto 2^L\},\, chs_0^3
-      }
-  
-      \axiom{
-        \texttt{fprintf}(stdout_{lo},\dots,y)
-        \vdash_p
-        \{b\mapsto true^H,\;x\mapsto 1^H,\;y\mapsto 2^L\},\, chs_0^3
-        \Rightarrow
-        None,\, chs_0'
-      }
-    }
-  
-    % ---------- Second run: b = false ----------
-    \subder{
+      \qquad
       ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
     }{
-      \axiom{
-        \texttt{bool b; int x; int y;}
-        \vdash_p \_
-        \Rightarrow
-        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\}
-      }
-  
-      \axiom{
-        \texttt{fscanf}(stdin_{hi},\dots,\&b)
-        \vdash_p
-        \{b\mapsto ?^L,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1
-        \Rightarrow
-        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
-      }
-  
+      % First run
       \subder{
-        \texttt{if}(b)\{
-        \texttt{fscanf}(stdin_{lo},\dots,\&x);
-        \}
-        \vdash_p
-        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
-        \Rightarrow
-        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
+        ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
       }{
         \axiom{
-          \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\}
-          \vdash_p b \Downarrow false^H
+          \texttt{fscanf}(stdin_{hi},\dots,\&b)
+          \vdash_p \_,\, chs_0
+          \Rightarrow \{b \mapsto true^H\},\, chs_0^1
+        }
+        \axiom{
+          \texttt{fscanf}(stdin_{hi},\dots,\&y)
+          \vdash_p \{b \mapsto true^H\},\, chs_0^1
+          \Rightarrow \{b \mapsto true^H,\; y \mapsto 9^H\},\, chs_0^2
+        }
+        \subder{
+          \texttt{if}(b)\{\texttt{fscanf}(stdin_{lo},\dots,\&y)\}
+          \vdash_p \{b \mapsto true^H,\; y \mapsto 9^H\},\, chs_0^2
+          \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
+        }{
+          \axiom{
+            \{b \mapsto true^H,\; y \mapsto 9^H\} \vdash_p b \Downarrow true^H
+          }
+          \axiom{
+            \texttt{fscanf}(stdin_{lo},\dots,\&y)
+            \vdash_{p,H} \{b \mapsto true^H,\; y \mapsto 9^H\},\, chs_0^2
+            \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
+          }
+        }
+        \axiom{
+          \texttt{fscanf}(stdin_{lo},\dots,\&z)
+          \vdash_p \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
+          \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto 2^L\},\, chs_0^4
+        }
+        \axiom{
+          \texttt{fprintf}(stdout_{lo},\dots,z)
+          \vdash_p \{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto 2^L\},\, chs_0^4
+          \Rightarrow None,\, chs_0'
         }
       }
-  
-      \axiom{
-        \texttt{fscanf}(stdin_{lo},\dots,\&y)
-        \vdash_p
-        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto ?^L\},\, chs_1^1
-        \Rightarrow
-        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto 1^L\},\, chs_1^2
-      }
-  
-      \axiom{
-        \texttt{fprintf}(stdout_{lo},\dots,y)
-        \vdash_p
-        \{b\mapsto false^H,\;x\mapsto ?^L,\;y\mapsto 1^L\},\, chs_1^2
-        \Rightarrow
-        None,\, chs_1'
+    
+      % Second run
+      \subder{
+        ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
+      }{
+        \axiom{
+          \texttt{fscanf}(stdin_{hi},\dots,\&b)
+          \vdash_p \_,\, chs_1
+          \Rightarrow \{b \mapsto false^H\},\, chs_1^1
+        }
+        \axiom{
+          \texttt{fscanf}(stdin_{hi},\dots,\&y)
+          \vdash_p \{b \mapsto false^H\},\, chs_1^1
+          \Rightarrow \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
+        }
+        \subder{
+          \texttt{if}(b)\{\texttt{fscanf}(stdin_{lo},\dots,\&y)\}
+          \vdash_p \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
+          \Rightarrow \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
+        }{
+          \axiom{
+            \{b \mapsto false^H,\; y \mapsto 9^H\} \vdash_p b \Downarrow false^H
+          }
+        }
+        \axiom{
+          \texttt{fscanf}(stdin_{lo},\dots,\&z)
+          \vdash_p \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
+          \Rightarrow \{b \mapsto false^H,\; y \mapsto 9^H,\; z \mapsto 1^L\},\, chs_1^3
+        }
+        \axiom{
+          \texttt{fprintf}(stdout_{lo},\dots,z)
+          \vdash_p \{b \mapsto false^H,\; y \mapsto 9^H,\; z \mapsto 1^L\},\, chs_1^3
+          \Rightarrow None,\, chs_1'
+        }
       }
     }
-  \end{nd}
-  $}
-  \end{figure}
+    \end{nd}
+    \]
+    \end{figure}
 \end{document}
