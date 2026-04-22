@@ -165,10 +165,38 @@ end
 *)
 
 module Value = struct
-  type t = PrimValue.t * SecLab.t
-  [@@deriving show]
+  type t = 
+    | V_Undefined of SecLab.t
+    | V_None of SecLab.t 
+    | V_Int of int * SecLab.t 
+    | V_Bool of bool * SecLab.t   
+    | V_Str of string * SecLab.t 
+    [@@deriving show]
 
-end
+    let get_sec (v : t) : SecLab.t = 
+      match v with 
+      | V_Undefined s -> s
+      | V_None s -> s 
+      | V_Int (_, s) -> s
+      | V_Bool (_, s) -> s
+      | V_Str (_, s) -> s
+    
+    let get_prim (v : t) : PrimValue.t = 
+      match v with 
+      | V_None _ -> PrimValue.V_None
+      | V_Undefined _ -> PrimValue.V_Undefined
+      | V_Int (n, _) -> PrimValue.V_Int n
+      | V_Bool (b, _) -> PrimValue.V_Bool b
+      | V_Str (s, _) -> PrimValue.V_Str s 
+
+    let to_string(v : t) : string =
+      match v with 
+      | V_Undefined _ -> "?"
+      | V_None _ -> "None"
+      | V_Int (prim, _) -> Int.to_string prim
+      | V_Bool (prim, _) -> Bool.to_string prim
+      | V_Str (prim, _) -> prim
+  end
 
 (* Module for input/output built-in functions.
  *)
