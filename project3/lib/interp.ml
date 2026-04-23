@@ -339,10 +339,7 @@ module Env = struct
   let declare (rho : t)(x : Ast.Id.t)(sec : SecLab.t): t = 
     match lookup rho x with 
     | Some _ -> raise (MultipleDeclaration x)
-    | None -> bind rho x (Value.V_Undefined sec)                (* Not entirely sure about the security label when declaring a variable. 
-                                                                Based on the operational semantics, it needs a security label based 
-                                                                off of the security context. If so, do I need to pass in the security context
-                                                                from my program execution? *)
+    | None -> bind rho x (Value.V_Undefined sec)                
   
   (* for calling a function with multiple values
   *)
@@ -482,15 +479,30 @@ let exec (p : Ast.Prog.t) : unit =
         match funcName with
         | "fprintf" ->
           (match args with 
-          | _ :: fmt :: xs -> 
-            let pFormat = match eval rho fmt with
-              | Value.V_Str str -> str
+          | chan :: fmt :: xs -> 
+            let chan_sec = match chan with 
+              | Ast.Expr.Var s -> SecLab.of_channel s
+              | _ -> raise (TypeError "Error in call to fprintf")
+            in 
+              let pFormat = match eval rho fmt secCon with
+              | Value.V_Str (str, _) -> str
               | _ -> raise (TypeError "Format must be a string to print")
-            in let vs = List.map (eval rho) xs in
-             Io.do_fprintf pFormat vs;
-             Value.V_None
+            in 
+              (* helper function that creates a list of primitive values while ensuring that each value's security label is at least as high 
+                 as the security Context.  *)
+              let rec prim_list args = 
+                match args with 
+                | [] -> [] 
+                | hd :: rest -> 
+                  let v = eval rho hd secCon in 
+                  match SecLab.leq (Value.get_sec v) chan_sec with 
+                  | false -> raise SecurityError
+                  | true -> (Value.get_prim v) :: prim_list rest
+                in 
+                  Io.do_fprintf pFormat (prim_list xs);
 
-            | _ -> raise (TypeError "fprintf expects stdout and a format string"))
+          Value.V_None secCon
+          | _ -> raise (TypeError "fprintf expects stdout and a format string"))
 
         | "fscanf" ->
             raise (TypeError "fscanf is a statement, not an expression")
@@ -504,10 +516,10 @@ let exec (p : Ast.Prog.t) : unit =
               | None -> raise(UndefinedFunction(funcName))
             in
             let (_, params, body_stms) = func in
-            let arg_vals = List.map (eval rho) args in
+            let arg_vals = List.map (fun e -> eval rho e secCon) args in
             let func_env = Env.bind_multi Env.empty params arg_vals in
             let func_rho : EnvList.t = [func_env] in
-            match exec_seq body_stms func_rho with
+            match exec_seq body_stms func_rho secCon with
             | Frame.EnvFrame _ ->  raise(NoReturn(funcName))
             | Frame.ReturnFrame v -> v
 
@@ -531,10 +543,10 @@ let exec (p : Ast.Prog.t) : unit =
         Frame.EnvFrame rho'
 
     | Assign (x, e) ->
-        let curr_x = EnvList.lookup rho x in 
-        let curr_sec = Value.get_sec curr_x in 
+        let curr_var = EnvList.lookup rho x in 
+        let curr_sec = Value.get_sec curr_var in 
         (
-        match SecLab.leq secCon curr_sec with (* If the security label is greater than current security label of our current variable
+        match SecLab.leq secCon curr_sec with (* If the security context is greater than current security label of our current variable
                                                   we raise the NSU error. O/w , update. *)
         | false -> raise NSU_Error
         | true -> 
