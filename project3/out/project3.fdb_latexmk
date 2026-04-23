@@ -1,6 +1,6 @@
 # Fdb version 4
-["pdflatex"] 1776961897.17811 "/Users/ruishiwang/Downloads/Wes-Spring2026/CS324/comp324-project3/project3/project3.tex" "out/project3.pdf" "project3" 1776961897.63709 0
-  "/Users/ruishiwang/Downloads/Wes-Spring2026/CS324/comp324-project3/project3/project3.tex" 1776961897.09172 12601 eec62c3d5ecb66fc2efc2cf5b99e4ed1 ""
+["pdflatex"] 1776963955.73424 "/Users/ruishiwang/Downloads/Wes-Spring2026/CS324/comp324-project3/project3/project3.tex" "out/project3.pdf" "project3" 1776963956.28437 0
+  "/Users/ruishiwang/Downloads/Wes-Spring2026/CS324/comp324-project3/project3/project3.tex" 1776963955.62402 14079 9a8887f7a43063ed4ccc7ff923987c37 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-t1.enc" 1136849721 2971 def0b6c1f0b107b3b936def894055589 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2025/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
@@ -112,8 +112,8 @@
   "/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1770422030 5467155 19efa205003f9ecad95fbbaa6ff24da1 ""
   "/usr/local/texlive/2025/texmf-var/web2c/pdftex/pdflatex.fmt" 1741450574 3345740 46b66fdb0378f7bf5921b5eabf1762b8 ""
   "/usr/local/texlive/2025/texmf.cnf" 1741450484 577 418a7058ec8e006d8704f60ecd22c938 ""
-  "out/project3.aux" 1776961897.5479 32 c81c40425fbb5e93b90fba65da0b5e61 "pdflatex"
-  "project3.tex" 1776961897.09172 12601 eec62c3d5ecb66fc2efc2cf5b99e4ed1 ""
+  "out/project3.aux" 1776963956.20992 32 c81c40425fbb5e93b90fba65da0b5e61 "pdflatex"
+  "project3.tex" 1776963955.62402 14079 9a8887f7a43063ed4ccc7ff923987c37 ""
   (generated)
   "out/project3.aux"
   "out/project3.log"

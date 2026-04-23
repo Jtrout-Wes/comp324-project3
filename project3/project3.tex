@@ -274,13 +274,15 @@ Therefore, while initial chs are same, the low outputs are different once we cha
 
 \textbf{Task 3}
 
-(1) To make security errors explicit in the values in the semantics, we need to add SecErr value
+\textbf{Update Domain}
+
+To make security errors explicit in the values in the semantics, we need to add SecErr value
 The old domain for value is Val = PrimVal × SecLab , and the new domain for value will be Val = PrimVal × SecLab + {SecErr}
 
 Similarly, the new domain for frame will be Frame = EnvBlock × Val + {SecErrFrame}
 \\
 
-(2)
+\textbf{Update Operational Semantics}
 
 \[
 \frac{
@@ -422,9 +424,10 @@ Similarly, the new domain for frame will be Frame = EnvBlock × Val + {SecErrFra
 \]
 
 \newpage 
+\textbf{Update Equivalence Definition}
 
-(4) Equivalence 
-beyond the definition of equivalence on the handout, we extend the following cases for equivalence
+
+we extend the definition 1 of equivalence on the handout with following cases
 \begin{enumerate}
   \setcounter{enumi}{0}
   
@@ -439,7 +442,37 @@ beyond the definition of equivalence on the handout, we extend the following cas
   \[
   SecErrFrame \sim SecErrFrame
   \]
+
+  \item 
+  all original definition of equivalence
   \end{enumerate}
 
 
+\textbf{Example of a program that is not safe}:
+\begin{center}
+    \begin{verbatim}
+      bool b;
+      fscanf(stdin_hi, "%b", &b);
+      if (b) {
+          fprintf(stdout_lo, "secret");
+      }
+    \end{verbatim}
+\end{center}
+
+We execute this program twice with b = true and b = false, then compare the output. Let $chs_0$ and $chs_1$ be the initial I/O env,
+and $chs_0 = chs_1$
+\[
+  \begin{array}{rcl}
+  chs_0 &=& \langle [], [\,], [true], [\,] \rangle \\[2mm]
+  chs_1 &=& \langle [], [\,], [false], [\,] \rangle \\[2mm]
+  \end{array}
+  \]
+
+When b = true, we enter the IF condition, and the security context is high. When we call $fprintf(stdout_lo,..)$, we will get SecErr according to our new Fprintf SecErr operational semantics.
+By Sequence SecErr operational semantics, the entire program evalutes to a SecErrFrame error.
+
+On the second run, if b = false, the we skip the IF condition, there is no wrong outout, so we just terminate the program normally, which evalute to a frame $(b \mapsto false^H)$ and chs, where the frame is not an error.
+
+According to our extended definition of equivalence, frames only equal if they yield the same error. In our program with same starting states, 
+one yields SecErrFrame, while the other yields a normal frame. Therefore by the new definition, because the result is not the same error(SecErrFrame), the program is not safe
 \end{document}
