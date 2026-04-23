@@ -166,7 +166,7 @@ Initially, both executions start from equivalent channels with $in^L = [1,2]$ an
 When $b = true$, we enter the condition, and read y from $in^L$ before we read $z$.  
 So the first element $1$ is assigned, leaving $in^L = [2]$, we then assigns $z = 2$, so $out^L = [2]$.  
 
-However, if $b = false$, we skip reading y. The read of $z$ come from the first element directly, which is $z = 1$. leaving $in^L = [2]$, so $out^L = [1]$.  
+However, if $b = false$ (staring from line 19), we skip reading y. The read of $z$ come from the first element directly, which is $z = 1$. leaving $in^L = [2]$, so $out^L = [1]$.  
 
 Therefore, while initial chs are same, the low outputs are different once we change high input
 
@@ -187,7 +187,7 @@ Therefore, while initial chs are same, the low outputs are different once we cha
     \[
     \begin{nd}
     \der{
-      ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0' 
+      ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
       \qquad
       ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
     }{
@@ -195,39 +195,66 @@ Therefore, while initial chs are same, the low outputs are different once we cha
       \subder{
         ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
       }{
-        \axiom{
+        \subder{
           \texttt{fscanf}(stdin_{hi},\dots,\&b)
           \vdash_p \_,\, chs_0
           \Rightarrow \{b \mapsto true^H\},\, chs_0^1
+        }{
+          \axiom{b \in \mathrm{dom}(\{b \mapsto ?^L,\; y \mapsto ?^L,\; z \mapsto ?^L\})}
         }
-        \axiom{
+    
+        \subder{
           \texttt{fscanf}(stdin_{hi},\dots,\&y)
           \vdash_p \{b \mapsto true^H\},\, chs_0^1
           \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^2
+        }{
+          \axiom{y \in \mathrm{dom}(\{b \mapsto true^H,\; y \mapsto ?^L,\; z \mapsto ?^L\})}
         }
+    
         \subder{
           \texttt{if}(b)\{\texttt{fscanf}(stdin_{lo},\dots,\&y)\}
           \vdash_p \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^2
           \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
         }{
-          \axiom{
+          \subder{
             \{b \mapsto true^H,\; y \mapsto 1^H\} \vdash_p b \Downarrow true^H
+          }{
+            \axiom{
+              \{b \mapsto true^H,\; y \mapsto 1^H\}(b)=true^H
+            }
           }
-          \axiom{
+    
+          \subder{
             \texttt{fscanf}(stdin_{lo},\dots,\&y)
             \vdash_{p,H} \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^2
             \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
+          }{
+            \axiom{y \in \mathrm{dom}(\{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto ?^L\})}
+            \axiom{H \sqsubseteq H}
           }
         }
-        \axiom{
+    
+        \subder{
           \texttt{fscanf}(stdin_{lo},\dots,\&z)
           \vdash_p \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
           \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto 2^L\},\, chs_0^4
+        }{
+          \axiom{z \in \mathrm{dom}(\{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto ?^L\})}
         }
-        \axiom{
+    
+        \subder{
           \texttt{fprintf}(stdout_{lo},\dots,z)
           \vdash_p \{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto 2^L\},\, chs_0^4
           \Rightarrow None,\, chs_0'
+        }{
+          \subder{
+            \{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto 2^L\} \vdash_p z \Downarrow 2^L
+          }{
+            \axiom{
+              \{b \mapsto true^H,\; y \mapsto 1^H,\; z \mapsto 2^L\}(z)=2^L
+            }
+          }
+          \axiom{L \sqsubseteq L}
         }
       }
     
@@ -235,39 +262,63 @@ Therefore, while initial chs are same, the low outputs are different once we cha
       \subder{
         ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
       }{
-        \axiom{
+        \subder{
           \texttt{fscanf}(stdin_{hi},\dots,\&b)
           \vdash_p \_,\, chs_1
           \Rightarrow \{b \mapsto false^H\},\, chs_1^1
+        }{
+          \axiom{b \in \mathrm{dom}(\{b \mapsto ?^L,\; y \mapsto ?^L,\; z \mapsto ?^L\})} 
         }
-        \axiom{
+    
+        \subder{
           \texttt{fscanf}(stdin_{hi},\dots,\&y)
           \vdash_p \{b \mapsto false^H\},\, chs_1^1
           \Rightarrow \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
+        }{
+          \axiom{y \in \mathrm{dom}(\{b \mapsto false^H,\; y \mapsto ?^L,\; z \mapsto ?^L\})}
         }
+    
         \subder{
           \texttt{if}(b)\{\texttt{fscanf}(stdin_{lo},\dots,\&y)\}
           \vdash_p \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
           \Rightarrow \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
         }{
-          \axiom{
+          \subder{
             \{b \mapsto false^H,\; y \mapsto 1^H\} \vdash_p b \Downarrow false^H
+          }{
+            \axiom{
+              \{b \mapsto false^H,\; y \mapsto 1^H\}(b)=false^H
+            }
           }
         }
-        \axiom{
+    
+        \subder{
           \texttt{fscanf}(stdin_{lo},\dots,\&z)
           \vdash_p \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
           \Rightarrow \{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto 1^L\},\, chs_1^3
+        }{
+          \axiom{z \in \mathrm{dom}(\{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto ?^L\})}
         }
-        \axiom{
+    
+        \subder{
           \texttt{fprintf}(stdout_{lo},\dots,z)
           \vdash_p \{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto 1^L\},\, chs_1^3
           \Rightarrow None,\, chs_1'
+        }{
+          \subder{
+            \{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto 1^L\} \vdash_p z \Downarrow 1^L
+          }{
+            \axiom{
+              \{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto 1^L\}(z)=1^L
+            }
+          }
+          \axiom{L \sqsubseteq L}
         }
       }
     }
     \end{nd}
     \]
+
     \end{figure}
 
 \newpage
