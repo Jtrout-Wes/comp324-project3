@@ -132,7 +132,7 @@
 
 \maketitle
     
-\noindent Task 2 - Operational Semantics
+\noindent \textbf{Task 2 - Operational Semantics}
 
 \textbf{Example of a program that is not safe}:
 \begin{center}
@@ -161,10 +161,19 @@ do this in our program by changing boolean value b from true to false, then comp
 
 Looking at the derivation on the next page, we have the following result using same low input in $chs_0$ and $chs_1$
 
+Initially, both executions start from equivalent channels with $in^L = [1,2]$ and empty $out^L$.  
+
+When $b = true$, we enter the condition, and read y from $in^L$ before we read $z$.  
+So the first element $1$ is assigned, leaving $in^L = [2]$, we then assigns $z = 2$, so $out^L = [2]$.  
+
+However, if $b = false$, we skip reading y. The read of $z$ come from the first element directly, which is $z = 1$. leaving $in^L = [2]$, so $out^L = [1]$.  
+
+Therefore, while initial chs are same, the low outputs are different once we change high input
+
 \[
   \begin{array}{rcl}
-  chs_0 &=& \langle [1,2], [\,], [true,9], [\,] \rangle \\[2mm]
-  chs_1 &=& \langle [1,2], [\,], [false,9], [\,] \rangle \\[2mm]
+  chs_0 &=& \langle [1,2], [\,], [true,1], [\,] \rangle \\[2mm]
+  chs_1 &=& \langle [1,2], [\,], [false,1], [\,] \rangle \\[2mm]
   chs_0' &=& \langle [\,], [2^L], [\,], [\,] \rangle \\[2mm]
   chs_1' &=& \langle [2], [1^L], [\,], [\,] \rangle
   \end{array}
@@ -178,7 +187,7 @@ Looking at the derivation on the next page, we have the following result using s
     \[
     \begin{nd}
     \der{
-      ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0'
+      ss \vdash_p \_,\, chs_0 \Rightarrow \eta_0,\, chs_0' 
       \qquad
       ss \vdash_p \_,\, chs_1 \Rightarrow \eta_1,\, chs_1'
     }{
@@ -194,19 +203,19 @@ Looking at the derivation on the next page, we have the following result using s
         \axiom{
           \texttt{fscanf}(stdin_{hi},\dots,\&y)
           \vdash_p \{b \mapsto true^H\},\, chs_0^1
-          \Rightarrow \{b \mapsto true^H,\; y \mapsto 9^H\},\, chs_0^2
+          \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^2
         }
         \subder{
           \texttt{if}(b)\{\texttt{fscanf}(stdin_{lo},\dots,\&y)\}
-          \vdash_p \{b \mapsto true^H,\; y \mapsto 9^H\},\, chs_0^2
+          \vdash_p \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^2
           \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
         }{
           \axiom{
-            \{b \mapsto true^H,\; y \mapsto 9^H\} \vdash_p b \Downarrow true^H
+            \{b \mapsto true^H,\; y \mapsto 1^H\} \vdash_p b \Downarrow true^H
           }
           \axiom{
             \texttt{fscanf}(stdin_{lo},\dots,\&y)
-            \vdash_{p,H} \{b \mapsto true^H,\; y \mapsto 9^H\},\, chs_0^2
+            \vdash_{p,H} \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^2
             \Rightarrow \{b \mapsto true^H,\; y \mapsto 1^H\},\, chs_0^3
           }
         }
@@ -234,25 +243,25 @@ Looking at the derivation on the next page, we have the following result using s
         \axiom{
           \texttt{fscanf}(stdin_{hi},\dots,\&y)
           \vdash_p \{b \mapsto false^H\},\, chs_1^1
-          \Rightarrow \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
+          \Rightarrow \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
         }
         \subder{
           \texttt{if}(b)\{\texttt{fscanf}(stdin_{lo},\dots,\&y)\}
-          \vdash_p \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
-          \Rightarrow \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
+          \vdash_p \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
+          \Rightarrow \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
         }{
           \axiom{
-            \{b \mapsto false^H,\; y \mapsto 9^H\} \vdash_p b \Downarrow false^H
+            \{b \mapsto false^H,\; y \mapsto 1^H\} \vdash_p b \Downarrow false^H
           }
         }
         \axiom{
           \texttt{fscanf}(stdin_{lo},\dots,\&z)
-          \vdash_p \{b \mapsto false^H,\; y \mapsto 9^H\},\, chs_1^2
-          \Rightarrow \{b \mapsto false^H,\; y \mapsto 9^H,\; z \mapsto 1^L\},\, chs_1^3
+          \vdash_p \{b \mapsto false^H,\; y \mapsto 1^H\},\, chs_1^2
+          \Rightarrow \{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto 1^L\},\, chs_1^3
         }
         \axiom{
           \texttt{fprintf}(stdout_{lo},\dots,z)
-          \vdash_p \{b \mapsto false^H,\; y \mapsto 9^H,\; z \mapsto 1^L\},\, chs_1^3
+          \vdash_p \{b \mapsto false^H,\; y \mapsto 1^H,\; z \mapsto 1^L\},\, chs_1^3
           \Rightarrow None,\, chs_1'
         }
       }
@@ -260,4 +269,177 @@ Looking at the derivation on the next page, we have the following result using s
     \end{nd}
     \]
     \end{figure}
+
+\newpage
+
+\textbf{Task 3}
+
+(1) To make security errors explicit in the values in the semantics, we need to add SecErr value
+The old domain for value is Val = PrimVal × SecLab , and the new domain for value will be Val = PrimVal × SecLab + {SecErr}
+
+Similarly, the new domain for frame will be Frame = EnvBlock × Val + {SecErrFrame}
+\\
+
+(2)
+
+\[
+\frac{
+  \rho s, chs_0 \vdash_{p,\lambda^*} e_0 \Downarrow SecErr, chs_1
+}{
+  \rho s, chs_0 \vdash_{p,\lambda^*} e_0 + e_1 \Downarrow SecErr, chs_1
+}
+\;\textsc{Op(+) left error}
+\]
+
+\[
+\frac{
+  \rho s, chs_0 \vdash_{p,\lambda^*} e_0 \Downarrow v, chs_1
+  \quad
+  \rho s, chs_1\vdash_{p,\lambda^*} e_1 \Downarrow SecErr, chs_2
+}{
+  \sigma \vdash_{p,\lambda^*} e_0 + e_1 \Downarrow SecErr, chs_2
+}
+\;\textsc{Op(+) right error}
+\]
+
+\[
+\frac{
+  \rho s, chs_i \vdash_{p,\lambda^*} e_i \Downarrow SecErr, chs_{i+1}
+}{
+  \rho s, chs_0 \vdash_{p,\lambda^*} f(e_0,\dots,e_i,\dots,e_{n-1}) \Downarrow SecErr, chs_{i+1}
+}
+\;\textsc{Call SecErr Arg}
+\]
+
+\[
+\frac{
+  ss \vdash_{p,\lambda^*} [\vec{x}\mapsto \vec{v^\lambda}], chs_0 \Rightarrow SecErrFrame, chs_1
+}{
+  \rho s, chs_0 \vdash_{p,\lambda^*} f(\vec{e}) \Downarrow SecErr, chs_1
+}
+\;\textsc{Call SecErr Body}
+\]
+
+\[
+\frac{
+  \rho s, chs \vdash_{p,\lambda^*} e \Downarrow v^{\lambda_0}, chs'
+  \quad
+  \lambda_0 \not\sqsubseteq \lambda
+}{
+  \rho s, chs \vdash_{p,\lambda^*} \texttt{fprintf}(stdout_{\lambda},\dots,e) \Downarrow SecErr, chs'
+}
+\;\textsc{Fprintf SecErr}
+\]
+
+\[
+\frac{
+  \rho s, chs \vdash_{p,\lambda^*} e \Downarrow SecErr, chs'
+}{
+  \rho s, chs \vdash_{p,\lambda^*} \texttt{fprintf}(stdout_{\lambda},\dots,e) \Downarrow SecErr, chs'
+}
+\;\textsc{Fprintf Propagation}
+\]
+
+\[
+\frac{
+  \lambda^* \not\sqsubseteq \rho s(x)
+}{
+  x = e \vdash_{p,\lambda^*} \rho s, chs \Rightarrow SecErrFrame, chs
+}
+\;\textsc{AssignNSU}
+\]
+
+
+\[
+\frac{
+  \rho s, chs \vdash_{p,\lambda^*} e \Downarrow SecErr, chs'
+}{
+  x = e \vdash_{p,\lambda^*} \rho s, chs \Rightarrow SecErrFrame, chs'
+}
+\;\textsc{Assign Propagation}
+\]
+
+\[
+\frac{
+  x \in \mathrm{dom}\,\rho s
+  \quad
+  \lambda^* \not\sqsubseteq \rho s(x)
+}{
+  \texttt{fscanf}(stdin_{\lambda},\dots,\&x)\vdash_{p,\lambda^*}
+  \rho s, chs
+  \Rightarrow
+  SecErrFrame, chs
+}
+\;\textsc{FscanfNSU}
+\]
+
+\[
+  \frac{
+    x \in \mathrm{dom}\,\rho s
+    \quad
+    \lambda^* \sqsubseteq \rho s(x)
+    \quad
+    \lambda^* \not\sqsubseteq \lambda
+  }{
+    \texttt{fscanf}(stdin_{\lambda},\dots,\&x)\vdash_{p,\lambda^*}
+    \rho s, chs
+    \Rightarrow
+    SecErrFrame, chs
+  }
+  \;\textsc{Fscanf Propagation}
+\]
+
+\[
+\frac{
+  \rho s, chs \vdash_{p,\lambda^*} e \Downarrow SecErr, chs'
+}{
+  \texttt{if }(e)\; s_0\; \texttt{else }\; s_1
+  \vdash_{p,\lambda^*}
+  \rho s, chs
+  \Rightarrow
+  SecErrFrame, chs'
+}
+\;\textsc{IfTrue SecErr}
+\]
+
+
+\[
+\frac{
+  \rho s, chs \vdash_{p,\lambda^*} e \Downarrow SecErr, chs'
+}{
+  \texttt{return } e \vdash_{p,\lambda^*} \rho s, chs \Rightarrow SecErrFrame, chs'
+}
+\;\textsc{ReturnVal SecErr}
+\]
+
+\[
+\frac{
+  s \vdash_{p,\lambda^*} \rho s, chs \Rightarrow SecErrFrame, chs'
+}{
+  s :: ss \vdash_{p,\lambda^*} \rho s, chs \Rightarrow SecErrFrame, chs'
+}
+\;\textsc{Sequence SecErr}
+\]
+
+\newpage 
+
+(4) Equivalence 
+beyond the definition of equivalence on the handout, we extend the following cases for equivalence
+\begin{enumerate}
+  \setcounter{enumi}{0}
+  
+  \item
+  two value are equivalent if
+  \[
+  SecErr \sim SecErr
+  \]
+  
+  \item
+  two frame are equivalent if
+  \[
+  SecErrFrame \sim SecErrFrame
+  \]
+  \end{enumerate}
+
+
 \end{document}
