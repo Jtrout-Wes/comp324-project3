@@ -525,10 +525,20 @@ let exec (p : Ast.Prog.t) : unit =
             | None -> env
             | Some e -> let v = eval rho e secCon in EnvList.update env x v) rho' declarations in Frame.EnvFrame rho''
 
-    | Fscanf (_, fmt, var_id) ->
-        let v = Io.do_fscanf fmt in
+    | Fscanf (channel, fmt, var_id) ->
+      let channelLabel = SecLab.of_channel channel in
+      if SecLab.leq secCon channelLabel then
+        let pv = Io.do_fscanf fmt in
+        let v = match pv with
+        | V_None -> (Value.V_None channelLabel)
+        | V_Bool b -> (Value.V_Bool (b, channelLabel))
+        | V_Int n -> (Value.V_Int (n,channelLabel))
+        | V_Str s -> (Value.V_Str (s, channelLabel))
+        | V_Undefined -> (Value.V_Undefined channelLabel)
+        in
         let rho' = EnvList.update rho var_id v in
         Frame.EnvFrame rho'
+      else raise NSU_Error
 
     | Assign (x, e) ->
         let curr_x = EnvList.lookup rho x in 
