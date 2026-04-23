@@ -488,7 +488,7 @@ let exec (p : Ast.Prog.t) : unit =
               | Value.V_Str (str, _) -> str
               | _ -> raise (TypeError "Format must be a string to print")
             in 
-              (* helper function that creates a list of primitive values while ensuring that each value's security label is at least as high 
+              (* helper function that creates a list of primitive values while ensuring that each value's security label is at most as high 
                  as the security Context.  *)
               let rec prim_list args = 
                 match args with 
