@@ -153,11 +153,11 @@
     \end{verbatim}
 \end{center}
 
-\noindent By Definition 2 in handout, a program is safe when public inputs are the same, public outputs are also same even 
-secrete inputs can be different. 
+\noindent By Definition 2 in the handout, when public inputs are the same, public outputs should also be same even if
+secret inputs can be different. 
 
-To show our program above is not saft, then, we need to run the program twice, with two different high security input. We can 
-do this in our program by changing boolean value b from true to false, then compare the output result. 
+To show that our program above is not safe, we run the program twice with two different high-security inputs. We can
+do this by changing the Boolean value $b$ from \texttt{true} to \texttt{false} and comparing the outputs. 
 
 Looking at the derivation on the next page, we have the following result using same low input in $chs_0$ and $chs_1$
 
@@ -520,9 +520,9 @@ and $chs_0 \sim chs_1$ (same low input)
   \]
 
 When b = true, we enter the IF condition, and the security context is high. When we call $fprintf(stdout_lo,..)$, we will get SecErr according to our new Fprintf SecErr operational semantics.
-By Sequence SecErr operational semantics, the entire program evalutes to a SecErrFrame error.
+By Sequence SecErr operational semantics, the entire program evaluates to a SecErrFrame error.
 
-On the second run, if b = false, the we skip the IF condition, there is no wrong outout, so we just terminate the program normally, which evalute to a frame $(b \mapsto false^H)$ and chs, where the frame is not an error.
+On the second run, if $b = \texttt{false}$, then we skip the IF condition; there is no erroneous output, so the program terminates normally, which evaluates to a frame $(b \mapsto false^H)$ and $chs$, where the frame is not an error.
 
 According to our extended definition of equivalence, frames only equal if they yield the same error. In our program with same starting states, 
 one yields SecErrFrame, while the other yields a normal frame. Therefore by the new definition, because the result is not the same error(SecErrFrame), the program is not safe
